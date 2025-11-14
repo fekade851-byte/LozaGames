@@ -1,17 +1,62 @@
 class VideoOptimizer {
   constructor() {
     this.videoConfig = {
-      red: { video: 'red.mp4', poster: 'red-poster.jpg' },
-      blue: { video: 'blue.mp4', poster: 'blue-poster.jpg' },
-      green: { video: 'green.mp4', poster: 'green-poster.jpg' },
-      yellow: { video: 'yellow.mp4', poster: 'yellow-poster.jpg' },
-      // Add more colors and their corresponding video files as needed
+      red: { 
+        webm: '/videos/red.webm',
+        mp4: '/videos/red_optimized.mp4',
+        poster: '/videos/red-poster.jpg' 
+      },
+      blue: { 
+        webm: '/videos/blue.webm',
+        mp4: '/videos/blue_optimized.mp4',
+        poster: '/videos/blue-poster.jpg' 
+      },
+      green: { 
+        webm: '/videos/green.webm',
+        mp4: '/videos/green_optimized.mp4',
+        poster: '/videos/green-poster.jpg' 
+      },
+      yellow: { 
+        webm: '/videos/yellow.webm',
+        mp4: '/videos/yellow_optimized.mp4',
+        poster: '/videos/yellow-poster.jpg' 
+      },
+      pink: { 
+        webm: '/videos/pink.webm',
+        mp4: '/videos/pink_optimized.mp4',
+        poster: '/videos/pink-poster.jpg' 
+      },
+      purple: { 
+        webm: '/videos/purple.webm',
+        mp4: '/videos/purple_optimized.mp4',
+        poster: '/videos/purple-poster.jpg' 
+      },
+      white: { 
+        webm: '/videos/white.webm',
+        mp4: '/videos/white_optimized.mp4',
+        poster: '/videos/white-poster.jpg' 
+      },
+      black: { 
+        webm: '/videos/black.webm',
+        mp4: '/videos/black_optimized.mp4',
+        poster: '/videos/black-poster.jpg' 
+      }
     };
     
-    this.videoContainer = document.getElementById('video-container');
+    // Initialize video element if it doesn't exist
     this.videoElement = document.getElementById('video-player');
-    this.posterElement = document.getElementById('video-poster');
-    this.playButton = document.getElementById('play-button');
+    if (!this.videoElement) {
+      this.videoElement = document.createElement('video');
+      this.videoElement.id = 'video-player';
+      this.videoElement.playsInline = true;
+      this.videoElement.muted = true; // Start muted for autoplay
+      this.videoElement.preload = 'auto';
+      document.body.appendChild(this.videoElement);
+    }
+    
+    this.isPlaying = false;
+    this.currentColor = null;
+    this.hasUserInteracted = false;
     
     this.init();
   }
@@ -19,7 +64,35 @@ class VideoOptimizer {
   init() {
     this.setupEventListeners();
     this.checkConnection();
-    this.lazyLoadVideos();
+    
+    // Set up video element with default settings
+    this.videoElement.controls = false;
+    this.videoElement.autoplay = true;
+    this.videoElement.playsInline = true;
+    this.videoElement.muted = true; // Start muted for autoplay
+    
+    // Set up error handling
+    this.videoElement.addEventListener('error', (e) => {
+      console.error('Video error:', this.videoElement.error);
+      this.handleVideoError();
+    });
+    
+    // Set up play/pause handling
+    this.videoElement.addEventListener('play', () => {
+      this.isPlaying = true;
+    });
+    
+    this.videoElement.addEventListener('pause', () => {
+      this.isPlaying = false;
+    });
+    
+    // Set up ended event
+    this.videoElement.addEventListener('ended', () => {
+      this.isPlaying = false;
+      if (this.onVideoEnd) {
+        this.onVideoEnd();
+      }
+    });
     
     // Show the first video by default
     const firstColor = Object.keys(this.videoConfig)[0];
@@ -29,6 +102,20 @@ class VideoOptimizer {
   }
   
   setupEventListeners() {
+    // Handle user interaction for audio
+    const handleUserInteraction = () => {
+      if (!this.hasUserInteracted) {
+        this.hasUserInteracted = true;
+        // Try to unmute after user interaction
+        this.videoElement.muted = false;
+        // Try to play again with sound
+        this.playCurrentVideo().catch(console.error);
+      }
+    };
+
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+    
     // Play button click handler
     if (this.playButton) {
       this.playButton.addEventListener('click', () => this.togglePlay());

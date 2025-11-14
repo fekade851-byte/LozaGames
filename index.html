@@ -158,6 +158,74 @@
     <!-- Loading indicator (shown while app is loading) -->
     <div id="loading" class="loading-spinner" style="display: none;"></div>
     
+    <!-- Start Screen -->
+    <div id="start-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #00aa55; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; padding: 20px;">
+      <h1>Color Move Kids</h1>
+      <p>Click anywhere to start the game</p>
+      <button id="start-button" style="padding: 10px 20px; font-size: 18px; margin-top: 20px; background: white; color: #00aa55; border: none; border-radius: 5px; cursor: pointer;">Start Game</button>
+    </div>
+
+    <!-- Load scripts after user interaction -->
+    <script>
+      // Handle user interaction for autoplay
+      function initializeApp() {
+        // Load scripts in the correct order
+        const scripts = [
+          '/js/simple-video.js',
+          '/js/game-optimizations.js',
+          '/assets/index-GrIU3NQ6.js'
+        ];
+        
+        function loadScript(src) {
+          return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.type = 'application/javascript';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+          });
+        }
+        
+        // Load scripts in sequence
+        (async () => {
+          try {
+            for (const src of scripts) {
+              await loadScript(src);
+              console.log(`Loaded: ${src}`);
+            }
+            console.log('All scripts loaded successfully');
+          } catch (error) {
+            console.error('Error loading scripts:', error);
+          }
+        })();
+      }
+      
+      // Add click/touch event listeners to start the game
+      document.addEventListener('DOMContentLoaded', () => {
+        const startButton = document.getElementById('start-button');
+        const startScreen = document.getElementById('start-screen');
+        
+        const startGame = () => {
+          if (startScreen) {
+            startScreen.style.opacity = '0';
+            setTimeout(() => {
+              startScreen.style.display = 'none';
+              initializeApp();
+            }, 500);
+          }
+        };
+        
+        if (startButton) {
+          startButton.addEventListener('click', startGame);
+        }
+        
+        if (startScreen) {
+          startScreen.addEventListener('click', startGame);
+        }
+      });
+    </script>
+    
     <!-- Main app container -->
     <div id="root"></div>
     
@@ -230,14 +298,74 @@
       });
     </script>
     
-    <!-- Load game optimizations first -->
-    <script src="/js/game-optimizations.js" defer></script>
-    
-    <!-- Load main app script with defer -->
-    <script src="/assets/index-GrIU3NQ6.js" defer></script>
-    
-    <!-- Load video optimizer script with low priority -->
-    <script src="/js/video-optimizer.js" defer></script>
+    <!-- Add a user interaction overlay to handle autoplay policy -->
+    <div id="start-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #00aa55; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; padding: 20px;">
+      <h1>Color Move Kids</h1>
+      <p>Click anywhere to start the game</p>
+      <button id="start-button" style="padding: 10px 20px; font-size: 18px; margin-top: 20px; background: white; color: #00aa55; border: none; border-radius: 5px; cursor: pointer;">Start Game</button>
+    </div>
+
+    <!-- Load scripts with proper MIME types and integrity hashes if available -->
+    <script>
+      // Handle user interaction for autoplay
+      function initializeApp() {
+        // Hide start screen
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) startScreen.style.display = 'none';
+        
+        // Load scripts after user interaction
+        const scripts = [
+          { src: '/js/game-optimizations.js' },
+          { src: '/assets/index-GrIU3NQ6.js' },
+          { src: '/js/video-optimizer.js' }
+        ];
+        
+        function loadScript(src) {
+          return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.type = 'application/javascript';
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+            document.body.appendChild(script);
+          });
+        }
+        
+        // Load scripts in sequence
+        (async () => {
+          try {
+            for (const script of scripts) {
+              await loadScript(script.src);
+            }
+            console.log('All scripts loaded successfully');
+          } catch (error) {
+            console.error('Error loading scripts:', error);
+          }
+        })();
+      }
+      
+      // Add click/touch event listeners to start the game
+      document.addEventListener('DOMContentLoaded', () => {
+        const startButton = document.getElementById('start-button');
+        const startScreen = document.getElementById('start-screen');
+        
+        const startGame = () => {
+          if (startScreen) startScreen.style.opacity = '0';
+          setTimeout(() => {
+            if (startScreen) startScreen.style.display = 'none';
+            initializeApp();
+          }, 500);
+        };
+        
+        if (startButton) {
+          startButton.addEventListener('click', startGame);
+        }
+        
+        if (startScreen) {
+          startScreen.addEventListener('click', startGame);
+        }
+      });
+    </script>
     
     <!-- Fallback for no-JS -->
     <noscript>
