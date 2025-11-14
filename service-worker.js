@@ -1,4 +1,5 @@
-const CACHE_NAME = 'loza-games-v3';
+const CACHE_NAME = 'loza-games-v4'; // Incremented version to force update
+const CACHE_VERSION = 'v4';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 // Cache configuration
@@ -74,26 +75,84 @@ self.addEventListener('install', event => {
   self.skipWaiting();
   
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Caching static assets...');
-        // Cache static assets first
-        return cache.addAll(CACHE_FILES.static).then(() => {
-          // Then cache videos one by one to avoid timeouts
-          return Promise.all(
-            CACHE_FILES.videos.map(url => 
-              fetch(new Request(url, { cache: 'reload' }))
-                .then(response => {
-                  if (response.ok) {
-                    return cache.put(url, response);
-                  }
-                })
-                .catch(error => {
-                  console.warn(`Failed to cache ${url}:`, error);
-                })
-            )
-          );
+    caches.open(CACHE_NAME).then(cache => {
+      console.log('Caching static assets...');
+      // Cache static assets first
+      return cache.addAll(CACHE_FILES.static);
+    })
+  );
+});
+
+// Fetch event - handle requests
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
+  
+  // Skip non-GET requests and chrome-extension requests
+  if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
+    return;
+  }
+  
+  // Handle video requests with cache-first strategy
+  if (url.pathname.includes('/videos/')) {
+    event.respondWith(
+      caches.match(request).then(cachedResponse => {
+        // Return cached response if available
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        
+        // Otherwise fetch from network, cache and return
+        return fetch(request).then(response => {
+          // Only cache valid responses
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+          
+          // Clone the response
+          const responseToCache = response.clone();
+          
+          // Cache the response
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, responseToCache);
+          });
+          
+          return response;
+        }).catch(error => {
+          console.error('Fetch failed:', error);
+          // Return a fallback response if both cache and network fail
+          return new Response('Video not available', {
+            status: 404,
+            statusText: 'Not Found'
+          });
         });
+      })
+    );
+    return;
+  }
+  
+  // For all other requests, try network first
+  event.respondWith(
+    fetch(request)
+      .then(response => {
+        // Check if we received a valid response
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+        
+        // Clone the response
+        const responseToCache = response.clone();
+        
+        // Cache the response
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(request, responseToCache);
+        });
+        
+        return response;
+      })
+      .catch(() => {
+        // If network fails, try to get it from the cache
+        return caches.match(request);
       })
   );
 });

@@ -84,63 +84,79 @@ function handleVideoEnd() {
 }
 
 // 4. Play color with video optimization
-function playColor(color) {
+async function playColor(color) {
   if (!videoElement) {
     videoElement = initializeVideoPlayer();
   }
-  
-  const videoSrc = `/videos/${color}.webm`;
-  
+
+  const videoBase = `/videos/${color}`;
+  const videoSrcs = [
+    { src: `${videoBase}.webm`, type: 'video/webm' },
+    { src: `${videoBase}_optimized.mp4`, type: 'video/mp4' }
+  ];
+
   // Skip if already playing this video
-  if (currentVideoSrc === videoSrc && isPlaying) return;
-  
-  // Clean up previous video
-  if (videoElement.src) {
-    videoElement.pause();
-    videoElement.src = '';
-    videoElement.load();
+  const newVideoSrc = videoSrcs[0].src;
+  if (currentVideoSrc === newVideoSrc && isPlaying) {
+    return;
   }
-  
-  // Set new video source
-  currentVideoSrc = videoSrc;
-  videoElement.src = videoSrc;
-  
-  // Add MP4 fallback
-  const source = document.createElement('source');
-  source.src = `/videos/${color}_optimized.mp4`;
-  source.type = 'video/mp4';
-  
-  // Clear existing sources
-  while (videoElement.firstChild) {
-    videoElement.removeChild(videoElement.firstChild);
-  }
-  
-  // Add WebM source first (preferred)
-  const webmSource = document.createElement('source');
-  webmSource.src = videoSrc;
-  webmSource.type = 'video/webm';
-  videoElement.appendChild(webmSource);
-  
-  // Add MP4 fallback
-  videoElement.appendChild(source);
-  
-  // Play the video
-  const playPromise = videoElement.play();
-  
-  if (playPromise !== undefined) {
-    playPromise.catch(error => {
-      console.warn('Autoplay prevented:', error);
-      // Mute and try again if autoplay was prevented
-      videoElement.muted = true;
-      videoElement.play().catch(e => console.error('Failed to play video:', e));
+
+  try {
+    // Clean up previous video
+    if (videoElement.src) {
+      videoElement.pause();
+      videoElement.removeAttribute('src');
+      videoElement.load();
+      await new Promise(resolve => videoElement.onemptied = resolve);
+    }
+
+    // Clear existing sources
+    while (videoElement.firstChild) {
+      videoElement.removeChild(videoElement.firstChild);
+    }
+
+    // Add video sources
+    videoSrcs.forEach(({ src, type }) => {
+      const source = document.createElement('source');
+      source.src = src;
+      source.type = type;
+      videoElement.appendChild(source);
     });
-  }
-  
-  isPlaying = true;
-  
-  // Notify the game that the color has changed
-  if (typeof onColorChanged === 'function') {
-    onColorChanged(color);
+
+    currentVideoSrc = newVideoSrc;
+    isPlaying = false;
+
+    // Load the video
+    await videoElement.load();
+
+    // Try to play with sound
+    try {
+      videoElement.muted = false;
+      await videoElement.play();
+      isPlaying = true;
+    } catch (error) {
+      console.warn('Autoplay with sound failed, trying muted:', error);
+      // If autoplay with sound fails, try muted
+      videoElement.muted = true;
+      await videoElement.play();
+      isPlaying = true;
+    }
+
+    // Add error handling
+    videoElement.onerror = () => {
+      console.error('Video playback error:', videoElement.error);
+      // Try to recover by loading the next color
+      setTimeout(handleVideoEnd, 1000);
+    };
+
+    // Notify the game that the color has changed
+    if (typeof onColorChanged === 'function') {
+      onColorChanged(color);
+    }
+  } catch (error) {
+    console.error('Error playing video:', error);
+    // If all else fails, try the next color
+    setTimeout(handleVideoEnd, 1000);
   }
 }
 

@@ -61,13 +61,37 @@
 
 # Cache Control - Videos
 [[headers]]
-  for = "/videos/*"
+  for = "/videos/*.webm"
   [headers.values]
-    Cache-Control = "public, max-age=604800"  # 7 days
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "video/webm"
     Access-Control-Allow-Origin = "*"
     X-Content-Type-Options = "nosniff"
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
+
+[[headers]]
+  for = "/videos/*.mp4"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "video/mp4"
+    Access-Control-Allow-Origin = "*"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/videos/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "image/jpeg"
+    Access-Control-Allow-Origin = "*"
+    X-Content-Type-Options = "nosniff"
+
+# Enable CORS for video files
+[[headers]]
+  for = "/videos/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+    Vary = "Origin"
     
 # Disable caching for HTML files to prevent freezing
 [[headers]]
